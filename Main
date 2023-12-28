@@ -1,0 +1,52 @@
+pip install flask
+pip install tabula-py
+from flask import Flask, render_template, request, send_file
+from tabula import read_pdf
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/convert', methods=['POST'])
+def convert():
+    if 'file' not in request.files:
+        return render_template('index.html', error='No file part')
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return render_template('index.html', error='No selected file')
+
+    try:
+        df = read_pdf(file)
+        output_file = 'output.xlsx'
+        df.to_excel(output_file, index=False)
+        return send_file(output_file, as_attachment=True)
+    except Exception as e:
+        return render_template('index.html', error=f'Error: {str(e)}')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Excel Converter</title>
+</head>
+<body>
+    <h1>PDF to Excel Converter</h1>
+    
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    
+    <form action="/convert" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".pdf" required>
+        <button type="submit">Convert</button>
+    </form>
+</body>
+</html>
